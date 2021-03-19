@@ -22,6 +22,7 @@
 # DONE s6ctl status SERVICE
 # DONE s6ctl status full SERVICE
 
+# Define colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 PURPLE='\033[0;35m'
@@ -31,6 +32,7 @@ NC='\033[0m'
 BOLD='\033[1m'
 
 help-sv() {
+    # Function to print usage info
     echo ""
     echo "Usage:"
     echo "------"
@@ -54,6 +56,7 @@ help-sv() {
 }
 
 whichbundle() {
+    # Find wich bundles a service is a part of
     bndllist=""
     bndlnum=$(sudo s6-rc-db list bundles | wc -l)
     for ((i=1; i<=$bndlnum; i++))
@@ -70,6 +73,7 @@ whichbundle() {
 }
 
 readlog() {
+    # Read log of specified service or enter the log directory
     if [ -z "$1" ]; then
         cd /var/log && ls
     else
@@ -78,6 +82,7 @@ readlog() {
 }
 
 bugCheck() {
+    # The doctor function
     numsv=$(ls /run/service/ | wc -l)
     chk=0
 
@@ -116,6 +121,7 @@ bugCheck() {
 }
 
 statDesc() {
+    # Fetch description of service
     echo ""
     li="${BOLD}Name:|${NC}$1"
 
@@ -139,6 +145,7 @@ statDesc() {
 }
 
 statStatus() {
+    # Fetch status of service
     # Pass service name as arg1 and title as arg2
     svstatus=$(sudo s6-svstat /run/service/"$1" | awk '{print $1}')
     svtime=$(sudo s6-svstat -t /run/service/"$1")
@@ -165,6 +172,7 @@ statStatus() {
 }
 
 listDeps() {
+    # Fetch list of Dependencies
     svdep=$(sudo s6-rc-db dependencies "$1")
     if [ -n "$svdep" ]; then
         printf "${BOLD}Dependencies:${NC}\n"
@@ -185,6 +193,7 @@ listProc() {
 }
 
 logTail() {
+    # Print the log tail of service
     svlog=/var/log/"$1"/current
     if [ -f $svlog ]; then
         printf "${BOLD}Log tail:${NC}\n"
@@ -194,6 +203,7 @@ logTail() {
 }
 
 stat() {
+    # Print all information about a service
     svdir="/etc/s6/sv/$1"
     if [[ -d $svdir ]] || [[ -d $svdir-srv ]]; then
         statDesc "$1"
@@ -240,7 +250,6 @@ stat() {
             li="$li\nUptime:|${CYAN}$svtime min${NC}|Uptime:|${CYAN}$logtime min${NC}"
             li="$title\n$li"
             printf "$li" | column -t -s "|"
-            # echo "$srv|$log"
         elif [ "$svtype" == "longrun" ]; then
             # Longrun
             srv=$(statStatus "$1" "Service")
@@ -258,6 +267,7 @@ stat() {
 }
 
 listAll() {
+    # Fetch a list of services or bundles
     svnum=$(sudo s6-rc-db list "$1" | wc -l)
     if [ "$1" == "services" ]; then
         li=" : \nService:Type\n-------:----"
@@ -288,6 +298,7 @@ listDown() {
 }
 
 listLongrun() {
+    # List all longruns and show their current status
     svnum=$(sudo s6-rc-db list longruns | wc -l)
     li=" : : : : \nService:Status:Uptime:PID:Exit code\n-------:------:------:---:---------"
 
@@ -324,6 +335,7 @@ listLongrun() {
 }
 
 listInbndl() {
+    # List all services in a bundle
     svnum=$(sudo s6-rc-db contents "$1" | wc -l)
     li=" : \nService:Type\n-------:----"
     for ((i=1; i<=$svnum; i++))
@@ -337,6 +349,7 @@ listInbndl() {
 }
 
 handler() {
+    # The handler to change contents of bundle
     if [ "$1" == "add" ];then
         sudo s6-rc-bundle-update add "$2" "$3" && echo "$3 has been added to $2"
     elif [ "$1" == "remove" ]; then
@@ -347,6 +360,7 @@ handler() {
 }
 
 listHandler() {
+    # The handler for the various list functions
     case "$1" in
         "all") listAll "services" ;;
         "up") listUp ;;
@@ -360,6 +374,7 @@ listHandler() {
     esac
 }
 
+# The main case handler
 case "$1" in
     "help") help-sv ;;
     "doctor") bugCheck ;;
