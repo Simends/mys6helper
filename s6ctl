@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# TODO s6ctl script SERVICE
 # DONE s6ctl list all
 # TODO s6ctl list up
 # TODO s6ctl list down
@@ -173,6 +174,7 @@ listDeps() {
 }
 
 listProc() {
+    # TODO Fikse list proc funksjonen
     printf "${BOLD}Processes:${NC}\n"
     svpid=$(sudo s6-svstat -p /run/service/"$1"-srv)
     ps -LfMp "$svpid"
