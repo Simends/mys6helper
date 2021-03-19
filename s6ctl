@@ -18,6 +18,7 @@
 # DONE s6ctl up SERVICE
 # DONE s6ctl down SERVICE
 # DONE s6ctl down force SERVICE
+# DONE s6ctl restart SERVICE
 # DONE s6ctl log SERVICE
 # DONE s6ctl status SERVICE
 # DONE s6ctl status full SERVICE
@@ -39,6 +40,7 @@ help-sv() {
     li="s6ctl help|This info"
     li="$li\ns6ctl up SERVICE|Start the service"
     li="$li\ns6ctl down [force] SERVICE|Stop the service"
+    li="$li\ns6ctl restart SERVICE|Restart the service"
     li="$li\ns6ctl in BUNDLE add/remove SERVICE|Add or remove service in a bundle"
     li="$li\ns6ctl create BUNDLE|Create a new bundle"
     li="$li\ns6ctl delete BUNDLE|Delete a bundle"
@@ -51,8 +53,8 @@ help-sv() {
     li="$li\ns6ctl list up/down|Lists all services that are currently up or down"
     li="$li\ns6ctl list bundle/longrun/oneshot|Lists all bundles, longruns or oneshots"
     li="$li\ns6ctl list in BUNDLE|Lists all services in the bundle"
-    li="$li\ns6ctl list depends SERVICE|Lists all dependencies of a service"
-    li="$li\ns6ctl list procs SERVICE|Lists all processes of a service"
+    li="$li\ns6ctl list dependencies SERVICE|Lists all dependencies of a service"
+    li="$li\ns6ctl list processes SERVICE|Lists all processes of a service"
     printf "$li" | column -t -s "|"
 }
 
@@ -417,6 +419,7 @@ case "$1" in
     "status") [ "$2" == "full" ] && stat "$3" "-f" || stat "$2" ;;
     "up") sudo s6-rc -v 2 -u change "$2" ;;
     "down") [ "$2" == "force" ] && sudo s6-rc -v 2 -D change "$3" || sudo s6-rc -v 2 -d change "$2" ;;
+    "restart") echo "Restarting $2" && sudo s6-rc -v 2 -d change "$2" && sudo s6-rc -v 2 -u change "$2" ;;
     "create") sudo s6-rc-bundle add "$2" && echo "Created the $2 bundle" ;;
     "delete") sudo s6-rc-bundle delete "$2" && echo "Deleted the $2 bundle" ;;
     "in") handler "$3" "$2" "$4" ;;
