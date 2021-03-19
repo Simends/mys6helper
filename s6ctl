@@ -80,7 +80,7 @@ readlog() {
     if [ -z "$1" ]; then
         cd /var/log && ls
     else
-        bat -f /var/log/$1/current
+        "$PAGER" /var/log/$1/current
     fi
 }
 
