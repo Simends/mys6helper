@@ -348,6 +348,35 @@ listInbndl() {
     echo "$svnum in total"
 }
 
+catScript() {
+    type=$(sudo s6-rc-db type "$1")
+    case "$type" in
+        "oneshot")
+            echo ""
+            echo "$1:"
+            sudo s6-rc-db script "$1"
+            ;;
+        "bundle")
+                  dir=/etc/s6/sv/"$1"-srv
+                  if [ -d "$dir" ]; then
+                      echo ""
+                      echo "Server:"
+                      cat "$dir/run"
+                      echo ""
+                      echo "Logger:"
+                      cat "/etc/s6/sv/$1-log/run"
+                  else
+                      listInbndl "$1"
+                  fi
+                  ;;
+        "longrun")
+            echo ""
+            echo "$1:"
+            cat "/etc/s6/sv/$1/run"
+            ;;
+    esac
+}
+
 handler() {
     # The handler to change contents of bundle
     if [ "$1" == "add" ];then
@@ -387,4 +416,5 @@ case "$1" in
     "delete") sudo s6-rc-bundle delete "$2" && echo "Deleted the $2 bundle" ;;
     "in") handler "$3" "$2" "$4" ;;
     "list") listHandler "$2" "$3" ;;
+    "cat") catScript "$2" ;;
 esac
