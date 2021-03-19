@@ -1,27 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# DONE s6ctl script SERVICE
-# DONE s6ctl list all
-# DONE s6ctl list up
-# DONE s6ctl list down
-# DONE s6ctl list bundle
-# DONE s6ctl list longrun
-# DONE s6ctl list oneshot
-# DONE s6ctl list in BUNDLE
-# DONE s6ctl doctor
-# DONE s6ctl update
-# DONE s6ctl help
-# DONE s6ctl create BUNDLE
-# DONE s6ctl delete BUNDLE
-# DONE s6ctl to BUNDLE SERVICE
-# DONE s6ctl from BUNDLE SERVICE
-# DONE s6ctl up SERVICE
-# DONE s6ctl down SERVICE
-# DONE s6ctl down force SERVICE
-# DONE s6ctl restart SERVICE
-# DONE s6ctl log SERVICE
-# DONE s6ctl status SERVICE
-# DONE s6ctl status full SERVICE
+# A script to make s6 and s6-rc easier to use
 
 # Define colors
 RED='\033[0;31m'
@@ -49,6 +28,7 @@ help-sv() {
     li="$li\ns6ctl cat SERVICE|Write the script of service to stdout"
     li="$li\ns6ctl update|Update the service database"
     li="$li\ns6ctl doctor|Starts the debugger"
+    li="$li\ns6ctl docs COMPONENT|Open the documentation on a s6 component"
     li="$li\ns6ctl list all|Lists all services"
     li="$li\ns6ctl list up/down|Lists all services that are currently up or down"
     li="$li\ns6ctl list bundle/longrun/oneshot|Lists all bundles, longruns or oneshots"
@@ -425,4 +405,5 @@ case "$1" in
     "in") handler "$3" "$2" "$4" ;;
     "list") listHandler "$2" "$3" ;;
     "cat") catScript "$2" ;;
+    "docs") links https://skarnet.org/software/"$2" ;;
 esac
