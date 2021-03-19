@@ -44,6 +44,7 @@ help-sv() {
     li="$li\ns6ctl delete BUNDLE|Delete a bundle"
     li="$li\ns6ctl log [SERVICE]|Read the log of service or enter the log directory"
     li="$li\ns6ctl status [full] SERVICE|Show the status of a service"
+    li="$li\ns6ctl cat SERVICE|Write the script of service to stdout"
     li="$li\ns6ctl update|Update the service database"
     li="$li\ns6ctl doctor|Starts the debugger"
     li="$li\ns6ctl list all|Lists all services"
@@ -122,6 +123,7 @@ bugCheck() {
 
 statDesc() {
     # Fetch description of service
+    svtype=$(sudo s6-rc-db type "$1")
     echo ""
     li="${BOLD}Name:|${NC}$1"
 
@@ -130,13 +132,12 @@ statDesc() {
         li="$li\nVersion:|$svversion"
     fi
 
-    svtype=$(sudo s6-rc-db type "$1")
     li="$li\nType:|$svtype"
 
     svbundle=$(whichbundle "$1")
     li="$li\nBundle:|$svbundle"
 
-    description=$(pacman -Qi "$1" | grep "Description" | sed 1q | awk '{$1=$2=""; print $0}' | sed 's/  //')
+    description=$(pacman -Qs "$1" | sed -n 2p | sed 's/    //')
     if [ -n "$description" ]; then
         li="$li\nDescription:|$description"
     fi
@@ -182,14 +183,21 @@ listDeps() {
 }
 
 listProc() {
-    # TODO Fikse list proc funksjonen
-    printf "${BOLD}Processes:${NC}\n"
-    svpid=$(sudo s6-svstat -p /run/service/"$1"-srv)
-    ps -LfMp "$svpid"
-    svpid=$(sudo s6-svstat -p /run/service/"$1"-log)
-    ps -LfMp "$svpid"
-    svpid=$(sudo s6-svstat -p /run/service/"$1")
-    ps -LfMp "$svpid"
+    # List processes owned by service
+    pidList=""
+    dirArray=("/run/service/$1" "/run/service/$1-srv" "/run/service/$1-log")
+    for dirs in "${dirArray[@]}";
+    do
+        if [ -d "$dirs" ]; then
+            pid=$(sudo s6-svstat -p "$dirs")
+            pidList="$pid $pidList"
+        fi
+    done
+    echo ""
+    if [ -n "$pidList" ]; then
+        printf "${BOLD}Processes:${NC}\n"
+        ps -LfMp $pidList
+    fi
 }
 
 logTail() {
@@ -393,8 +401,8 @@ listHandler() {
         "longruns") listLongrun ;;
         "oneshots") listAll "oneshots" ;;
         "in") listInbndl "$2" ;;
-        "depends") echo "" && listDeps "$2" ;;
-        "procs") listProc "$2" ;;
+        "dependencies") echo "" && listDeps "$2" ;;
+        "processes") listProc "$2" ;;
         "up") listUpDown "$1" ;;
         "down") listUpDown "$1" ;;
     esac
