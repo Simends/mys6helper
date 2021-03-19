@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# TODO s6ctl script SERVICE
+# DONE s6ctl script SERVICE
 # DONE s6ctl list all
-# TODO s6ctl list up
-# TODO s6ctl list down
+# DONE s6ctl list up
+# DONE s6ctl list down
 # DONE s6ctl list bundle
 # DONE s6ctl list longrun
 # DONE s6ctl list oneshot
@@ -62,7 +62,7 @@ whichbundle() {
     for ((i=1; i<=$bndlnum; i++))
     do
         bndlname=$(sudo s6-rc-db list bundles | sed -n "$i"p)
-        sudo s6-rc-db contents "$bndlname" | rg -q "$1" && bndllist="$bndllist, $bndlname"
+        sudo s6-rc-db contents "$bndlname" | grep -q "$1" && bndllist="$bndllist, $bndlname"
     done
     if [[ -z $bndllist ]]; then
         bndllist="Not in any bundle"
@@ -289,14 +289,6 @@ listAll() {
     echo "$svnum in total"
 }
 
-listUp() {
-    echo "up"
-}
-
-listDown() {
-    echo "down"
-}
-
 listLongrun() {
     # List all longruns and show their current status
     svnum=$(sudo s6-rc-db list longruns | wc -l)
@@ -332,6 +324,11 @@ listLongrun() {
 
     printf "$li\n : : : : " | column -t -s ":"
     echo "$svnum in total"
+}
+
+listUpDown() {
+    list=$(listLongrun | grep "$1")
+    echo "$list"
 }
 
 listInbndl() {
@@ -392,14 +389,14 @@ listHandler() {
     # The handler for the various list functions
     case "$1" in
         "all") listAll "services" ;;
-        "up") listUp ;;
-        "down") listDown ;;
         "bundles") listAll "bundles" ;;
         "longruns") listLongrun ;;
         "oneshots") listAll "oneshots" ;;
         "in") listInbndl "$2" ;;
         "depends") echo "" && listDeps "$2" ;;
         "procs") listProc "$2" ;;
+        "up") listUpDown "$1" ;;
+        "down") listUpDown "$1" ;;
     esac
 }
 
