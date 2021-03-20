@@ -1,1 +1,66 @@
-\" TODO Skrive manual \"
+.TH S6CTL 1
+.Sh NAME
+s6ctl
+.SH DESCRIPTION
+s6ctl is a bash script for easier interaction with s6 and s6-rc, made for artix linux.
+.SH USAGE
+.TP
+.B s6ctl help
+Prints out usage information.
+.TP
+.B s6ctl up SERVICE
+Starts a service
+.TP
+.B s6ctl down [force] SERVICE
+Stops a service. Can force them down, but this is usually not needed.
+.TP
+.B s6ctl restart SERVICE
+Stops a service and starts it again immidiately.
+.TP
+.B s6ctl in BUNDLE add SERVICE
+Add a service to a bundle. This will enable a service in s6-rc if you add it to the "default" bundle.
+.TP
+.B s6ctl in BUNDLE remove SERVICE
+Remove a service from a bundle. This is needed to disable a service similiar to above.
+.TP
+.B s6ctl create BUNDLE
+Creates a new bundle.
+.TP
+.B s6ctl delete BUNDLE
+Deletes a bundle. Use with caution.
+.TP
+.B s6ctl log SERVICE
+Read the log of service with $PAGER. if no service is given it will open the log directory in vim.
+.TP
+.B s6ctl status [full] SERVICE
+Prints information of a service and if it is a longrun it will print the current status of the service. With the full option it will also print the dependencies of the service, it's processes and a tail of it's log.
+.TP
+.B s6ctl cat SERVICE
+Prints the script of the service.
+.TP
+.B s6ctl update
+Updates the service database. This requires artix as it will just run the alpm transaction hook.
+.TP
+.B s6ctl doctor
+Will do som various checks on database integrity and look for failed services. This will only look for an exitcode different than 0 or -1.
+.TP
+.B s6ctl docs COMPONENT
+This will open the documentation on skarnet.org in links.
+.TP
+.B s6ctl list all
+Lists all services and their type.
+.TP
+.B s6ctl list up/down
+Lists longruns that are either currently up or currently down with relevant information.
+.TP
+.B s6ctl list bundle/longrun/oneshot
+Lists services of specific type with relevant information.
+.TP
+.B s6ctl list in BUNDLE
+Lists the contents in a bundle.
+.TP
+.B s6ctl list dependencies SERVICE
+Lists the dependencies of a service.
+.TP
+.B s6ctl list processes SERVICE
+Lists the currently running processes of a service with ps.
