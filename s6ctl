@@ -21,7 +21,7 @@ help-sv() {
     li="$li\ns6ctl down [force] SERVICE|Stop the service"
     li="$li\ns6ctl restart SERVICE|Restart the service"
     li="$li\ns6ctl in BUNDLE add/remove SERVICE|Add or remove service in a bundle"
-    li="$li\ns6ctl create BUNDLE|Create a new bundle"
+    li="$li\ns6ctl create BUNDLE SERVICE|Create a new bundle and add a service to it"
     li="$li\ns6ctl delete BUNDLE|Delete a bundle"
     li="$li\ns6ctl log [SERVICE]|Read the log of service or enter the log directory"
     li="$li\ns6ctl status [full] SERVICE|Show the status of a service"
@@ -100,7 +100,7 @@ bugCheck() {
     fi
     echo "$constdb"
     echo "$constrc"
-    echo "$chk"
+    printf "$chk"
 }
 
 statDesc() {
@@ -400,7 +400,7 @@ case "$1" in
     "up") sudo s6-rc -v 2 -u change "$2" ;;
     "down") [ "$2" == "force" ] && sudo s6-rc -v 2 -D change "$3" || sudo s6-rc -v 2 -d change "$2" ;;
     "restart") echo "Restarting $2" && sudo s6-rc -v 2 -d change "$2" && sudo s6-rc -v 2 -u change "$2" ;;
-    "create") sudo s6-rc-bundle add "$2" && echo "Created the $2 bundle" ;;
+    "create") sudo s6-rc-bundle add "$2" "$3" && echo "Created the $2 bundle, and added $3 in it" ;;
     "delete") sudo s6-rc-bundle delete "$2" && echo "Deleted the $2 bundle" ;;
     "in") handler "$3" "$2" "$4" ;;
     "list") listHandler "$2" "$3" ;;
