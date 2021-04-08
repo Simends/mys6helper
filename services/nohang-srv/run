@@ -1,0 +1,3 @@
+#!/usr/bin/execlineb -P
+fdmove -c 2 1
+exec /usr/bin/nohang --monitor --config /etc/nohang/nohang.conf
