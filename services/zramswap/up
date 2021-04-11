@@ -1,2 +1,2 @@
 #!/usr/bin/execlineb -P
-exec /usr/bin/zramctrl start
+exec /usr/local/bin/zramswap start

@@ -60,7 +60,7 @@ readlog() {
     if [ -z "$1" ]; then
         cd /var/log && ls
     else
-        "$PAGER" /var/log/$1/current
+        sudo "$PAGER" /var/log/$1/current
     fi
 }
 
