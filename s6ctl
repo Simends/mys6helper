@@ -4,6 +4,7 @@
 
 # Define colors
 RED='\033[0;31m'
+YELLOW='\033[0;33m'
 GREEN='\033[0;32m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
@@ -24,6 +25,8 @@ help-sv() {
     li="$li\ns6ctl create BUNDLE SERVICE|Create a new bundle and add a service to it"
     li="$li\ns6ctl delete BUNDLE|Delete a bundle"
     li="$li\ns6ctl log [SERVICE]|Read the log of service or enter the log directory"
+    li="$li\ns6ctl log critical|Read the list of critical errors"
+    li="$li\ns6ctl log list|List available logs to read"
     li="$li\ns6ctl status [full] SERVICE|Show the status of a service"
     li="$li\ns6ctl cat SERVICE|Write the script of service to stdout"
     li="$li\ns6ctl update|Update the service database"
@@ -59,6 +62,8 @@ readlog() {
     # Read log of specified service or enter the log directory
     if [ -z "$1" ]; then
         cd /var/log && ls
+    elif [ "$1" == "list" ]; then
+        sudo find /var/log | grep "current" | sed 's+/+ +g' | awk '{print $3}'
     else
         sudo "$PAGER" /var/log/$1/current
     fi
@@ -258,7 +263,8 @@ stat() {
 
 listAll() {
     # Fetch a list of services or bundles
-    svnum=$(sudo s6-rc-db list "$1" | wc -l)
+    list=$(sudo s6-rc-db list "$1" | sed '/-log/d')
+    svnum=$(echo "$list" | wc -l)
     if [ "$1" == "services" ]; then
         li=" : \nService:Type\n-------:----"
     else
@@ -266,7 +272,7 @@ listAll() {
     fi
     for ((i=1; i<=$svnum; i++))
     do
-        name=$(sudo s6-rc-db list "$1" | sed -n "$i"p)
+        name=$(echo "$list" | sed -n "$i"p)
         if [ "$1" == "services" ]; then
             type=$(sudo s6-rc-db type "$name")
             li="$li\n$name:$type"
@@ -275,39 +281,74 @@ listAll() {
         fi
     done
 
-    printf "$li\n : " | column -t -s ":"
+    # li=$(echo "$li" | sed 's/-srv//g')
+    printf "$li\n : " | sed 's/-srv//g' | column -t -s ":"
     echo "$svnum in total"
 }
 
 listLongrun() {
     # List all longruns and show their current status
-    svnum=$(sudo s6-rc-db list longruns | wc -l)
+    # TODO Group -srv and -log so every service is only listed once
+    list=$(sudo s6-rc-db list longruns | sed '/.*-log/d')
+    svnum=$(echo "$list" | wc -l)
     li=" : : : : \nService:Status:Uptime:PID:Exit code\n-------:------:------:---:---------"
 
     for ((i=1; i<=$svnum; i++))
     do
-        sv=$(sudo s6-rc-db list longruns | sed -n "$i"p)
-        svstatus=$(sudo s6-svstat /run/service/$sv | awk '{print $1}')
+        sv=$(echo "$list" | sed -n "$i"p)
+        pipe=$(sudo s6-rc-db pipeline "$sv")
         svtime=$(sudo s6-svstat -t /run/service/$sv)
         svtime=$((svtime/60))
         svtime="${CYAN}$svtime min${NC}"
 
-        if [ $svstatus = "up" ]; then
-            svid=$(sudo s6-svstat -p /run/service/$sv)
-            svid="${PURPLE}$svid${NC}"
-            ecode="${GRAY}-${NC}"
-            sv="${GREEN}${BOLD}$sv${NC}"
-            svstatus="${GREEN}$svstatus${NC}"
-        else
-            svid="${GRAY}-${NC}"
-            ecode=$(sudo s6-svstat -e /run/service/$sv)
-            if [ $((ecode)) != 0 ]; then
-                ecode="${RED}$ecode${NC}"
+        if [ -n "$pipe" ]; then
+            srv="$sv"
+            sv=$(echo "$sv" | sed 's/-srv//')
+            svstatus=$(sudo s6-svstat /run/service/$srv | awk '{print $1}')
+            logger=$(echo "$pipe" | awk '{print $3}')
+            logstatus=$(sudo s6-svstat /run/service/$logger | awk '{print $1}')
+            if [ $svstatus == "up" ] && [ $logstatus == "up" ]; then
+                svid=$(sudo s6-svstat -p /run/service/$srv)
+                svid="${PURPLE}$svid${NC}"
+                ecode="${GRAY}-${NC}"
+                sv="${GREEN}${BOLD}$sv${NC}"
+                svstatus="${GREEN}$svstatus${NC}"
+            elif [ $svstatus == "up" ]; then
+                svid=$(sudo s6-svstat -p /run/service/$srv)
+                svid="${PURPLE}$svid${NC}"
+                ecode="${GRAY}-${NC}"
+                sv="${YELLOW}${BOLD}$sv${NC}"
+                svstatus="${YELLOW}partial${NC}"
             else
-                ecode="${GRAY}$ecode${NC}"
+                svid="${GRAY}-${NC}"
+                ecode=$(sudo s6-svstat -e /run/service/$srv)
+                if [ $((ecode)) != 0 ]; then
+                    ecode="${RED}$ecode${NC}"
+                else
+                    ecode="${GRAY}$ecode${NC}"
+                fi
+                sv="${RED}${BOLD}$sv${NC}"
+                svstatus="${RED}$svstatus${NC}"
             fi
-            sv="${RED}${BOLD}$sv${NC}"
-            svstatus="${RED}$svstatus${NC}"
+        else
+            svstatus=$(sudo s6-svstat /run/service/$sv | awk '{print $1}')
+            if [ $svstatus = "up" ]; then
+                svid=$(sudo s6-svstat -p /run/service/$sv)
+                svid="${PURPLE}$svid${NC}"
+                ecode="${GRAY}-${NC}"
+                sv="${GREEN}${BOLD}$sv${NC}"
+                svstatus="${GREEN}$svstatus${NC}"
+            else
+                svid="${GRAY}-${NC}"
+                ecode=$(sudo s6-svstat -e /run/service/$sv)
+                if [ $((ecode)) != 0 ]; then
+                    ecode="${RED}$ecode${NC}"
+                else
+                    ecode="${GRAY}$ecode${NC}"
+                fi
+                sv="${RED}${BOLD}$sv${NC}"
+                svstatus="${RED}$svstatus${NC}"
+            fi
         fi
         li="$li\n$sv:$svstatus:$svtime:$svid:$ecode"
     done
