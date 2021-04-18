@@ -31,7 +31,8 @@ help-sv() {
     li="$li\ns6ctl cat SERVICE|Write the script of service to stdout"
     li="$li\ns6ctl update|Update the service database"
     li="$li\ns6ctl doctor|Starts the debugger"
-    li="$li\ns6ctl docs COMPONENT|Open the documentation on a s6 component"
+    li="$li\ns6ctl new-service FILE|Creates a new service from template"
+    li="$li\ns6ctl rm-service SERVICE|Removes service"
     li="$li\ns6ctl list all|Lists all services"
     li="$li\ns6ctl list up/down|Lists all services that are currently up or down"
     li="$li\ns6ctl list bundle/longrun/oneshot|Lists all bundles, longruns or oneshots"
@@ -405,6 +406,101 @@ catScript() {
     esac
 }
 
+newService() {
+    echo "Generating a new service..."
+    islogger=$(cat "$1" | grep "LOGGER")
+    svname=$(sed -n 's/Name: //p' "$1")
+    dir="/etc/s6/sv/$svname"
+    svtype=$(sed -n 's/Type: //p' "$1")
+    execsv="exec"
+    opts=""
+    if [ -n "$islogger" ] && [ $svtype == "longrun" ]; then
+        logdir="$dir"-log
+        dir="$dir"-srv
+        mkdir $logdir
+        touch $logdir/conf
+        touch $logdir/consumer-for
+        touch $logdir/notification-fd
+        touch $logdir/pipeline-name
+        touch $logdir/run
+        touch $logdir/type
+        echo "$svname-srv" > $logdir/consumer-for
+        echo "3" > $logdir/notification-fd
+        echo "$svname" > $logdir/pipeline-name
+        echo "longrun" > $logdir/type
+        echo "#!/usr/bin/execlineb -P" > $logdir/run
+        echo "foreground { if -n -t { test -d /var/log/$svname } install -d -m 0755 -o s6log -g s6log /var/log/$svname }" >> $logdir/run
+        echo "envfile $logdir/conf" >> $logdir/run
+        echo "importas -sCiu DIRECTIVES DIRECTIVES" >> $logdir/run
+        # TODO OPS
+        echo "s6-setuidgid s6log exec -c s6-log -d3 -b -- ${DIRECTIVES} /var/log/$svname" >> $logdir/run
+    elif [ -n "$islogger" ]; then
+        echo "Not supported"
+        break
+    fi
+    mkdir $dir
+    touch $dir/type
+    echo "$svtype" > $dir/type
+    deps=$(sed -n 's/Dependencies: //p' "$1" | sed 's/ /\n/g')
+    if [ -n "$deps" ]; then
+        touch $dir/dependencies
+        echo "$deps" > $dir/dependencies
+    fi
+    notif=$(sed 's/Notify fd: //p' "$1")
+    if [ -n "$notif" ]; then
+        touch $dir/notification-fd
+        echo "$notif" > $dir/notification-fd
+    fi
+    svuser=$(sed -n 's/User: //p' "$1")
+    svenv=$(sed -n '/Environment:/,/---/p' "$1" | sed '/Environment:/d' | sed '/---/d')
+    if [ -n $svuser ] || [ -n $svenv ]; then
+        touch $dir/conf
+        echo "envfile $dir/conf"
+        if [ -n $svuser ] && [ $svuser != "root" ]; then
+            echo "USER=$svuser" >> $dir/conf
+            opts="$opts\nimportas -iu USER USER"
+            execsv="$execsv s6-setuidgid $USER"
+        fi
+        if [ -n $svenv ]; then
+            echo -e "$svenv" >> $dir/conf
+            envnum=$(echo "$svenv" | wc -l)
+            for ((i=0; i<$envnum; i++))
+            do
+                currentopt=$(echo "$svenv" | sed -n "i"p | sed 's/=.*//')
+                opts="$opts\nimportas -iu $currentopt $currentopt"
+                opts="$opt\nexport $currentopt $currentopt"
+            done
+        fi
+    fi
+    svrunopts=$(sed -n '/Run-opts:/,/---/p' "$1" | sed '/Run-opts:/d' | sed '/---/d')
+    if [ -n $svrunopts ]; then
+        opts="$opts\n$svrunopts"
+    fi
+    if [ $svtype == "longrun" ]; then
+        touch $dir/run
+        echo "#!/usr/bin/execlineb -P" >> $dir/run
+        echo "$opts" >> $dir/run
+        execcomand=$(sed -n 's/Exec: //p' "$1")
+        execsv="$execsv $execcommand"
+        echo "$execsv" >> $dir/run
+    else
+        touch $dir/up
+        touch $dir/down
+        echo "#!/usr/bin/execlineb -P" >> $dir/up
+        echo "#!/usr/bin/execlineb -P" >> $dir/down
+        echo "$opts" >> $dir/up
+        execcomand=$(sed -n 's/Up: //p' "$1")
+        echo "$execsv $execcommand" >> $dir/up
+        execcomand=$(sed -n 's/Down: //p' "$1")
+        echo "$execsv $execcommand" >> $dir/down
+    fi
+    if [ -n $islogger ]; then
+        touch $dir/producer-for
+        echo "$svname-log" >> $dir/producer-for
+    fi
+    echo "Generating complete!"
+}
+
 handler() {
     # The handler to change contents of bundle
     if [ "$1" == "add" ];then
@@ -446,5 +542,6 @@ case "$1" in
     "in") handler "$3" "$2" "$4" ;;
     "list") listHandler "$2" "$3" ;;
     "cat") catScript "$2" ;;
-    "docs") links https://skarnet.org/software/"$2" ;;
+    "new-service") newService "$2" ;;
+    "rm-service") sudo rm -rf /etc/s6/sv/"$2" ;;
 esac
