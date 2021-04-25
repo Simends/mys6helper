@@ -289,7 +289,6 @@ listAll() {
 
 listLongrun() {
     # List all longruns and show their current status
-    # TODO Group -srv and -log so every service is only listed once
     list=$(sudo s6-rc-db list longruns | sed '/.*-log/d')
     svnum=$(echo "$list" | wc -l)
     li=" : : : : \nService:Status:Uptime:PID:Exit code\n-------:------:------:---:---------"
